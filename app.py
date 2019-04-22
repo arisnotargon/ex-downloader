@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import os
 import multiprocessing
 import argparse
-
+import re
 
 def getHeads(cookies):
     return {
@@ -43,6 +43,7 @@ def getpic(url, headers, pool, proxy=None):
     ext = picSrc.split('.')[-1]
     # 分析页码
     title = soup.title.get_text()
+    title = re.sub("[\/\\\:\*\?\"\<\>\|]", "_", title)
     i2 = soup.find(id='i2')
     i2span = i2.find_all('span')
     currentPage = int(i2span[0].get_text())

@@ -5,6 +5,8 @@ import os
 import multiprocessing
 import argparse
 import re
+import brotli
+
 
 def getHeads(cookies):
     return {
@@ -34,9 +36,12 @@ def getpic(url, headers, pool, proxy=None):
     req.headers = headers
 
     response = urlrequest.urlopen(req)
-    gzipFile = gzip.GzipFile(fileobj=response)
-    #
-    targetHtml = gzipFile.read().decode('utf8')
+    if response.getheader("Content-Encoding", ""):
+        targetHtml = brotli.decompress(response.read())
+    else:
+        gzipFile = gzip.GzipFile(fileobj=response)
+        #
+        targetHtml = gzipFile.read().decode('utf8')
     soup = BeautifulSoup(targetHtml, features='html.parser')
     # 图片真实链接
     picSrc = soup.find(id='img').attrs['src']
@@ -52,7 +57,8 @@ def getpic(url, headers, pool, proxy=None):
     if not os.path.exists(title):
         os.mkdir(title)
     # download(picSrc,title+'/'+str(currentPage)+'.'+ext)
-    pool.apply_async(download, (picSrc, title + '/' + str(currentPage) + '.' + ext))
+    pool.apply_async(download, (picSrc, title + '/' +
+                     str(currentPage) + '.' + ext))
 
     # 继续爬下一页
     if currentPage < totalPage:
@@ -68,7 +74,8 @@ if __name__ == '__main__':
                         help='start url,must be exhentai\'s gallery view page,like \'https://exhentai.org/s/0fea511044/1207481-1\'')
     parser.add_argument('-c', '--cookies', dest='cookies', required=True,
                         help='cookies,string like \'key1=54321; key2=qwerty;\'')
-    parser.add_argument('-p', '--proxy', dest='proxy', required=False, help='proxyIp:port,http only')
+    parser.add_argument('-p', '--proxy', dest='proxy',
+                        required=False, help='proxyIp:port,http only')
     args = parser.parse_args()
     url = args.url
     cookiesText = args.cookies
